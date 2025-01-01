@@ -1,6 +1,6 @@
 # Background Removal API
 
-A FastAPI application that removes backgrounds from images using the rembg library.
+A FastAPI-based service that removes backgrounds from images using the rembg library.
 
 ## Features
 - Remove background from images
@@ -8,6 +8,19 @@ A FastAPI application that removes backgrounds from images using the rembg libra
 - Automatic deployment to Vercel
 - CI/CD with GitHub Actions
 - Model caching to improve performance
+
+## API Endpoints
+
+### Remove Background
+- **URL**: `/api/remove-bg`
+- **Method**: POST
+- **Body**: JSON with base64 encoded image
+- **Returns**: JSON with base64 encoded image with background removed
+
+### Health Check
+- **URL**: `/api/healthcheck`
+- **Method**: GET
+- **Returns**: API status information
 
 ## Setup and Deployment
 
@@ -42,34 +55,16 @@ git push
 
 ## Local Development
 ```bash
+pip install -r requirements.txt
 uvicorn api.index:app --reload
 ```
+
+## Deployment
+This project is configured for deployment on Render.com.
 
 ## Testing
 ```bash
 pytest
-```
-
-## API Endpoints
-
-### GET /
-Health check endpoint
-
-### POST /remove-bg
-Remove background from an image
-
-Request body:
-```json
-{
-    "imageBase64": "base64_encoded_image_string"
-}
-```
-
-Response:
-```json
-{
-    "imageBase64": "base64_encoded_image_without_background"
-}
 ```
 
 ## Notes
