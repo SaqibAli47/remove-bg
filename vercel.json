@@ -1,14 +1,10 @@
 {
     "version": 2,
+    "devCommand": "uvicorn main:app --host 0.0.0.0 --port 3000",
     "builds": [
         {
             "src": "api/index.py",
-            "use": "@vercel/python@3.1.0",
-            "config": {
-                "runtime": "python3.9",
-                "maxDuration": 60,
-                "maxLambdaSize": "50mb"
-            }
+            "use": "@vercel/python"
         }
     ],
     "routes": [
