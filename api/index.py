@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from rembg import remove
+from rembg import remove, new_session
 import base64
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import os
+import numpy as np
+from PIL import Image
+import io
 
 # Initialize FastAPI
 app = FastAPI()
@@ -19,24 +22,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Set up model caching in /tmp for Vercel
-if os.environ.get("VERCEL"):
-    CACHE_DIR = Path("/tmp/.u2net")
-else:
-    CACHE_DIR = Path.home() / ".u2net"
-    
-MODEL_PATH = CACHE_DIR / "u2net.onnx"
-
-def download_model():
-    if not MODEL_PATH.exists():
-        print("Downloading u2net.onnx model...")
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        from rembg.session_factory import new_session
-        new_session("u2net")
-    print("Model is ready!")
-
-# Download model at startup
-download_model()
+# Initialize rembg session with u2net_human_seg model (smaller than default)
+session = new_session("u2net_human_seg")
 
 class ImageRequest(BaseModel):
     imageBase64: str
@@ -44,9 +31,24 @@ class ImageRequest(BaseModel):
 @app.post("/api/remove-bg")
 async def remove_background(request: ImageRequest):
     try:
+        # Decode base64 image
         image_data = base64.b64decode(request.imageBase64)
-        output_data = remove(image_data)
-        output_base64 = base64.b64encode(output_data).decode("utf-8")
+        
+        # Convert to PIL Image
+        input_image = Image.open(io.BytesIO(image_data))
+        
+        # Remove background
+        output_image = remove(
+            input_image,
+            session=session,
+            post_process_mask=True,
+        )
+        
+        # Convert back to base64
+        buffered = io.BytesIO()
+        output_image.save(buffered, format="PNG")
+        output_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        
         return JSONResponse(content={"imageBase64": output_base64})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error removing background: {str(e)}")
