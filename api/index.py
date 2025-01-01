@@ -22,8 +22,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize rembg session with u2net_human_seg model (smaller than default)
-session = new_session("u2net_human_seg")
+# Initialize rembg session with u2netp model (smallest model)
+try:
+    session = new_session("u2netp")
+except Exception as e:
+    print(f"Error initializing session: {str(e)}")
+    session = None
 
 class ImageRequest(BaseModel):
     imageBase64: str
@@ -37,16 +41,23 @@ async def remove_background(request: ImageRequest):
         # Convert to PIL Image
         input_image = Image.open(io.BytesIO(image_data))
         
+        # Convert to RGB if necessary
+        if input_image.mode != "RGB":
+            input_image = input_image.convert("RGB")
+        
         # Remove background
         output_image = remove(
             input_image,
             session=session,
-            post_process_mask=True,
+            alpha_matting=False,
+            alpha_matting_foreground_threshold=240,
+            alpha_matting_background_threshold=10,
+            post_process_mask=False,
         )
         
         # Convert back to base64
         buffered = io.BytesIO()
-        output_image.save(buffered, format="PNG")
+        output_image.save(buffered, format="PNG", optimize=True)
         output_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         
         return JSONResponse(content={"imageBase64": output_base64})
@@ -57,5 +68,6 @@ async def remove_background(request: ImageRequest):
 async def read_root():
     return {
         "status": "ok",
-        "message": "Background Removal API is running"
+        "message": "Background Removal API is running",
+        "session_initialized": session is not None
     }
